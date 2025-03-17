@@ -1,3 +1,4 @@
+import streamlit as st
 from handTracker import *
 import cv2
 import mediapipe as mp
@@ -38,7 +39,7 @@ class ColorRect():
         return False
 
 
-#initilize the habe detector
+#initilize the hand detector
 detector = HandTracker(detectionCon=int(0.8))
 
 #initilize the camera 
@@ -50,9 +51,9 @@ cap.set(4, 720)
 canvas = np.zeros((720,1280,3), np.uint8)
 
 # define a previous point to be used with drawing a line
-px,py = 0,0
+px, py = 0, 0
 #initial brush color
-color = (255,0,0)
+color = (255, 0, 0)
 #####
 brushSize = 5
 eraserSize = 20
@@ -102,10 +103,14 @@ hideBoard = True
 hideColors = True
 hidePenSizes = True
 
+# Streamlit setup
+st.title("Hand Drawing App")
+frame_placeholder = st.empty()
+
 while True:
 
     if coolingCounter:
-        coolingCounter -=1
+        coolingCounter -= 1
         #print(coolingCounter)
 
     ret, frame = cap.read()
@@ -132,7 +137,7 @@ while True:
                     else:
                         pen.alpha = 0.5
 
-            ####### chose a color for drawing #######
+            ####### choose a color for drawing #######
             if not hideColors:
                 for cb in colors:
                     if cb.isOver(x, y):
@@ -141,13 +146,13 @@ while True:
                     else:
                         cb.alpha = 0.5
 
-                #Clear 
+                #Clear
                 if clear.isOver(x, y):
                     clear.alpha = 0
                     canvas = np.zeros((720,1280,3), np.uint8)
                 else:
                     clear.alpha = 0.5
-            
+
             # color button
             if colorsBtn.isOver(x, y) and not coolingCounter:
                 coolingCounter = 10
@@ -156,7 +161,7 @@ while True:
                 colorsBtn.text = 'Colors' if hideColors else 'Hide'
             else:
                 colorsBtn.alpha = 0.5
-            
+
             # Pen size button
             if penBtn.isOver(x, y) and not coolingCounter:
                 coolingCounter = 10
@@ -166,46 +171,43 @@ while True:
             else:
                 penBtn.alpha = 0.5
 
-            
-            #white board button
+
+            # white board button
             if boardBtn.isOver(x, y) and not coolingCounter:
                 coolingCounter = 10
                 boardBtn.alpha = 0
                 hideBoard = False if hideBoard else True
                 boardBtn.text = 'Board' if hideBoard else 'Hide'
-
             else:
                 boardBtn.alpha = 0.5
-            
-            
-            
+
 
         elif upFingers[1] and not upFingers[2]:
             if whiteBoard.isOver(x, y) and not hideBoard:
                 #print('index finger is up')
-                cv2.circle(frame, positions[8], brushSize, color,-1)
+                cv2.circle(frame, positions[8], brushSize, color, -1)
                 #drawing on the canvas
                 if px == 0 and py == 0:
                     px, py = positions[8]
                 if color == (0,0,0):
-                    cv2.line(canvas, (px,py), positions[8], color, eraserSize)
+                    cv2.line(canvas, (px, py), positions[8], color, eraserSize)
                 else:
-                    cv2.line(canvas, (px,py), positions[8], color,brushSize)
+                    cv2.line(canvas, (px, py), positions[8], color, brushSize)
                 px, py = positions[8]
-        
+
         else:
             px, py = 0, 0
-        
+
     # put colors button
     colorsBtn.drawRect(frame)
-    cv2.rectangle(frame, (colorsBtn.x, colorsBtn.y), (colorsBtn.x +colorsBtn.w, colorsBtn.y+colorsBtn.h), (255,255,255), 2)
+    cv2.rectangle(frame, (colorsBtn.x, colorsBtn.y), (colorsBtn.x + colorsBtn.w, colorsBtn.y + colorsBtn.h), (255, 255, 255), 2)
 
-    # put white board buttin
+    # put white board button
     boardBtn.drawRect(frame)
-    cv2.rectangle(frame, (boardBtn.x, boardBtn.y), (boardBtn.x +boardBtn.w, boardBtn.y+boardBtn.h), (255,255,255), 2)
+    cv2.rectangle(frame, (boardBtn.x, boardBtn.y), (boardBtn.x + boardBtn.w, boardBtn.y + boardBtn.h), (255, 255, 255), 2)
 
     #put the white board on the frame
-    if not hideBoard:       
+    if not hideBoard:
         whiteBoard.drawRect(frame)
         ########### moving the draw to the main image #########
         canvasGray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
@@ -214,31 +216,32 @@ while True:
         frame = cv2.bitwise_and(frame, imgInv)
         frame = cv2.bitwise_or(frame, canvas)
 
-
     ########## pen colors' boxes #########
     if not hideColors:
         for c in colors:
             c.drawRect(frame)
-            cv2.rectangle(frame, (c.x, c.y), (c.x +c.w, c.y+c.h), (255,255,255), 2)
+            cv2.rectangle(frame, (c.x, c.y), (c.x + c.w, c.y + c.h), (255, 255, 255), 2)
 
         clear.drawRect(frame)
-        cv2.rectangle(frame, (clear.x, clear.y), (clear.x +clear.w, clear.y+clear.h), (255,255,255), 2)
-
+        cv2.rectangle(frame, (clear.x, clear.y), (clear.x + clear.w, clear.y + clear.h), (255, 255, 255), 2)
 
     ########## brush size boxes ######
     penBtn.color = color
     penBtn.drawRect(frame)
-    cv2.rectangle(frame, (penBtn.x, penBtn.y), (penBtn.x +penBtn.w, penBtn.y+penBtn.h), (255,255,255), 2)
+    cv2.rectangle(frame, (penBtn.x, penBtn.y), (penBtn.x + penBtn.w, penBtn.y + penBtn.h), (255, 255, 255), 2)
+
     if not hidePenSizes:
         for pen in pens:
             pen.drawRect(frame)
-            cv2.rectangle(frame, (pen.x, pen.y), (pen.x +pen.w, pen.y+pen.h), (255,255,255), 2)
+            cv2.rectangle(frame, (pen.x, pen.y), (pen.x + pen.w, pen.y + pen.h), (255, 255, 255), 2)
 
+    # Display the frame on Streamlit
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_placeholder.image(frame_rgb, channels="RGB", use_column_width=True)
 
-    cv2.imshow('video', frame)
-    #cv2.imshow('canvas', canvas)
-    k= cv2.waitKey(1)
-    if k == ord('q'):
+    # Exit condition
+    if cv2.waitKey(1) == ord('q'):
         break
+
 cap.release()
 cv2.destroyAllWindows()
